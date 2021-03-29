@@ -1,12 +1,12 @@
-package models
+package tasks
 
 import "gorm.io/gorm"
 
-type Task struct {
+type TaskModel struct {
 	gorm.Model
 	Title   string `json:"title"`
 	Content string `json:"content"`
 	Done    bool   `json:"done" gorm:"default:false"`
 }
 
-type Tasks []Task
+type TaskModels []TaskModel
