@@ -1,135 +1,69 @@
 package services
 
 import (
-	"database/sql"
-	"errors"
-	"fmt"
-	"gin_test/db"
 	"gin_test/models"
+
+	"gorm.io/gorm"
 )
 
 type TaskService struct {
-	DB *sql.DB
 }
 
-func (service *TaskService) GetById(id int) (models.Todo, error) {
-	var todo models.Todo
-
-	stmt, err := db.Get().Prepare("SELECT * FROM todo where id = ?")
-	if err != nil {
-		return todo, err
-	}
-
-	rows, err := stmt.Query(id)
-	if err != nil {
-		return todo, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		err = rows.Scan(
-			&todo.ID,
-			&todo.Name,
-			&todo.Done,
-			&todo.Created,
-			&todo.Updated,
-		)
-		if err != nil {
-			return todo, err
-		}
-	}
-
-	return todo, nil
+func (service *TaskService) GetById(db *gorm.DB, id int) (models.Task, error) {
+	var task models.Task
+	db.First(&task, id)
+	return task, nil
 }
 
-func (service *TaskService) GetAll() (models.Todos, error) {
-	var todos models.Todos
-	stmt, err := db.Get().Prepare("SELECT * FROM todo")
-	if err != nil {
-		return todos, err
-	}
-
-	rows, err := stmt.Query()
-	if err != nil {
-		return todos, err
-	}
-
-	for rows.Next() {
-		var todo models.Todo
-		err = rows.Scan(
-			&todo.ID,
-			&todo.Name,
-			&todo.Done,
-			&todo.Created,
-			&todo.Updated,
-		)
-		if err != nil {
-			return todos, err
-		}
-		todos = append(todos, todo)
-	}
-
-	return todos, nil
+func (service *TaskService) GetAll(db *gorm.DB) (models.Tasks, error) {
+	var tasks models.Tasks
+	db.Find(&tasks)
+	return tasks, nil
 }
 
-func (service *TaskService) Insert(name string) (int64, error) {
-	var id int64
-	stmt, err := db.Get().Prepare("INSERT INTO todo(name) values (?)")
-	if err != nil {
-		return id, err
-	}
-	defer stmt.Close()
+func (service *TaskService) Insert(db *gorm.DB, title string, content string) (*models.Task, error) {
+	tx := db.Begin()
 
-	result, err := stmt.Exec(name)
-	if err != nil {
-		return id, err
+	task := models.Task{
+		Title:   title,
+		Content: content,
 	}
-
-	id, err = result.LastInsertId()
-	if err != nil {
-		return id, err
+	if err := tx.Create(&task).Error; err != nil {
+		tx.Rollback()
+		return nil, err
 	}
 
-	return id, err
+	tx.Commit()
+
+	return &task, nil
 }
 
-func (service *TaskService) Update(id int, todo models.Todo) error {
-	stmt, err := db.Get().Prepare("UPDATE todo SET name = ?, done = ? WHERE id = ?")
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
+func (service *TaskService) Update(db *gorm.DB, id int, title string, content string, done bool) (*models.Task, error) {
+	tx := db.Begin()
 
-	result, err := stmt.Exec(todo.Name, todo.Done, id)
-	if err != nil {
-		return err
+	var task models.Task
+	tx.First(&task, id)
+	newTask := models.Task{
+		Title:   title,
+		Content: content,
+		Done:    done,
 	}
-	rowAffected, err := result.RowsAffected()
-	if !(rowAffected > 0) {
-		return errors.New(fmt.Sprintf("{row_affected=%d}", rowAffected))
+	if err := tx.Model(&task).Updates(newTask).Error; err != nil {
+		tx.Rollback()
+		return nil, err
 	}
-	return nil
+
+	tx.Commit()
+
+	return &task, nil
 }
 
-func (service *TaskService) Delete(id int) error {
-	stmt, err := db.Get().Prepare("DELETE FROM Todo WHERE id = ?")
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
+func (service *TaskService) Delete(db *gorm.DB, id int) error {
+	tx := db.Begin()
 
-	result, err := stmt.Exec(id)
-	if err != nil {
+	if err := tx.Delete(&models.Task{}, id).Error; err != nil {
+		tx.Rollback()
 		return err
-	}
-
-	rowAffected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if !(rowAffected > 0) {
-		return errors.New(fmt.Sprintf("no such Todo id = %d", id))
 	}
 
 	return nil

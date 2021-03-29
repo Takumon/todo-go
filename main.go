@@ -10,6 +10,5 @@ import (
 func main() {
 	db.Open()
 	db.Init()
-	defer db.Close()
 	router.Router()
 }

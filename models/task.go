@@ -1,15 +1,12 @@
 package models
 
-type Todo struct {
-	ID      int64  `json:"id"`
-	Name    string `json:"name"`
-	Done    bool   `json:"done"`
-	Created string `json:created`
-	Updated string `json:updated`
+import "gorm.io/gorm"
+
+type Task struct {
+	gorm.Model
+	Title   string `json:"title"`
+	Content string `json:"content"`
+	Done    bool   `json:"done" gorm:"default:false"`
 }
 
-type RequestParamsInsertTodo struct {
-	Name string `json:"name"`
-}
-
-type Todos []Todo
+type Tasks []Task

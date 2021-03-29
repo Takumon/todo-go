@@ -1,82 +1,46 @@
 package db
 
 import (
-	"database/sql"
 	"log"
+
+	"gin_test/models"
+
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
-var db *sql.DB
+var db *gorm.DB
 
-const DB_SOURCE_NAME = "./db/sample.db"
-const DB_DRIVER_NAME = "sqlite3"
-
-func createTable() {
-	q := `
-		CREATE TABLE todo (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			name VARCHAR(225) NOT NULL,
-			done INTEGER NOT NULL DEFAULT 0,
-			created TIMESTAMP DEFAULT (DATETIME('now', 'localtime')),
-			updated TIMESTAMP DEFAULT (DATETIME('now', 'localtime'))
-		)
-	`
-
-	statement, err := db.Prepare(q)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-
-	statement.Exec()
-	log.Println("todo table created")
-}
-
-func deleteTable() {
-	q := `
-		DROP TABLE IF EXISTS todo
-	`
-
-	statement, err := db.Prepare(q)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-
-	statement.Exec()
-	log.Println("todo table created")
-}
+const DB_SOURCE_NAME = "./data/sample.db"
 
 func addInitialTableData() {
-	q := `
-		INSERT INTO todo(name, done)
-		VALUES ('sample todo 1', false), ('sample todo 2', true)
-	`
-	statement, err := db.Prepare(q)
-	if err != nil {
-		log.Fatal(err.Error())
+	tasks := models.Tasks{
+		{Title: "sample task 1", Content: "sample task content 1", Done: false},
+		{Title: "sample task 2", Content: "sample task content 2", Done: true},
+		{Title: "sample task 3", Content: "sample task content 3", Done: false},
+		{Title: "sample task 4", Content: "sample task content 4", Done: false},
+		{Title: "sample task 5", Content: "sample task content 5", Done: false},
 	}
 
-	statement.Exec()
-	log.Println("add initial data")
+	db.Create(tasks)
+	log.Println("has inserted initial data")
 }
 
-func Get() *sql.DB {
+func Get() *gorm.DB {
 	return db
 }
 
 func Open() {
-	_db, err := sql.Open(DB_DRIVER_NAME, DB_SOURCE_NAME)
+	_db, err := gorm.Open(sqlite.Open(DB_SOURCE_NAME), &gorm.Config{})
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	db = _db
+
+	db.AutoMigrate(&models.Task{})
 }
 
 func Init() {
-	deleteTable()
-	createTable()
 	addInitialTableData()
-}
-
-func Close() {
-	db.Close()
 }

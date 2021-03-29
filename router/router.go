@@ -11,18 +11,16 @@ import (
 func Router() {
 	r := gin.Default()
 
-	taskService := services.TaskService{
-		DB: db.Get(),
-	}
+	taskService := services.TaskService{}
 	taskHandler := controllers.TaskHandler{
 		DB:      db.Get(),
 		Service: &taskService,
 	}
 
-	r.GET("/todos/:id", taskHandler.GetById)
-	r.GET("/todos", taskHandler.GetAll)
-	r.POST("/todos", taskHandler.Insert)
-	r.PUT("/todos/:id", taskHandler.Update)
-	r.DELETE("/todos/:id", taskHandler.Delete)
+	r.GET("/tasks/:id", taskHandler.GetById)
+	r.GET("/tasks", taskHandler.GetAll)
+	r.POST("/tasks", taskHandler.Insert)
+	r.PUT("/tasks/:id", taskHandler.Update)
+	r.DELETE("/tasks/:id", taskHandler.Delete)
 	r.Run(":8080")
 }

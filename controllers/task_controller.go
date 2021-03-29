@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"database/sql"
 	"gin_test/models"
 	"gin_test/services"
 	"log"
@@ -9,10 +8,11 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type TaskHandler struct {
-	DB      *sql.DB
+	DB      *gorm.DB
 	Service *services.TaskService
 }
 
@@ -23,47 +23,36 @@ func (handler *TaskHandler) GetById(c *gin.Context) {
 		log.Fatal(err.Error())
 	}
 
-	todo, err := handler.Service.GetById(id)
+	task, err := handler.Service.GetById(handler.DB, id)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
-	c.JSON(http.StatusOK, todo)
+	c.JSON(http.StatusOK, task)
 }
 
 func (handler *TaskHandler) GetAll(c *gin.Context) {
 
-	todos, err := handler.Service.GetAll()
+	tasks, err := handler.Service.GetAll(handler.DB)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
-	c.JSON(http.StatusOK, todos)
+	c.JSON(http.StatusOK, tasks)
 }
 
 func (handler *TaskHandler) Insert(c *gin.Context) {
-	var params models.RequestParamsInsertTodo
+	var params models.Task
 	if err := c.ShouldBindJSON(&params); err != nil {
 		log.Fatal(err.Error())
 	}
 
-	tx, err := handler.DB.Begin()
-	if err != nil {
-		log.Fatal(err)
-	}
-	name := params.Name
-	id, err := handler.Service.Insert(name)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-	tx.Commit()
-
-	todo, err := handler.Service.GetById(int(id))
+	task, err := handler.Service.Insert(handler.DB, params.Title, params.Content)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
-	c.JSON(http.StatusOK, todo)
+	c.JSON(http.StatusOK, task)
 }
 
 func (handler *TaskHandler) Update(c *gin.Context) {
@@ -73,26 +62,17 @@ func (handler *TaskHandler) Update(c *gin.Context) {
 		log.Fatal(err.Error())
 	}
 
-	var params models.Todo
+	var params models.Task
 	if err := c.ShouldBindJSON(&params); err != nil {
 		log.Fatal(err.Error())
 	}
 
-	tx, err := handler.DB.Begin()
-	if err != nil {
-		log.Fatal(err)
-	}
-	if err := handler.Service.Update(id, params); err != nil {
-		log.Fatal(err.Error())
-	}
-	tx.Commit()
-
-	todo, err := handler.Service.GetById(id)
+	task, err := handler.Service.Update(handler.DB, id, params.Title, params.Content, params.Done)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
-	c.JSON(http.StatusOK, todo)
+	c.JSON(http.StatusOK, task)
 }
 
 func (handler *TaskHandler) Delete(c *gin.Context) {
@@ -102,15 +82,9 @@ func (handler *TaskHandler) Delete(c *gin.Context) {
 		log.Fatal(err.Error())
 	}
 
-	tx, err := handler.DB.Begin()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if err := handler.Service.Delete(id); err != nil {
+	if err := handler.Service.Delete(handler.DB, id); err != nil {
 		log.Fatal(err.Error())
 	}
-	tx.Commit()
 
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
