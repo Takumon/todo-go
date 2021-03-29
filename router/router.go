@@ -1,26 +1,21 @@
 package router
 
 import (
+	"gin_test/container"
 	"gin_test/controllers"
-	"gin_test/db"
-	"gin_test/services"
 
 	"github.com/gin-gonic/gin"
 )
 
-func Router() {
+func Router(c *container.Container) {
 	r := gin.Default()
 
-	taskService := services.TaskService{}
-	taskHandler := controllers.TaskHandler{
-		DB:      db.Get(),
-		Service: &taskService,
-	}
+	controller := c.Get("TaskController").(controllers.TaskController)
 
-	r.GET("/tasks/:id", taskHandler.GetById)
-	r.GET("/tasks", taskHandler.GetAll)
-	r.POST("/tasks", taskHandler.Insert)
-	r.PUT("/tasks/:id", taskHandler.Update)
-	r.DELETE("/tasks/:id", taskHandler.Delete)
+	r.GET("/tasks/:id", controller.GetById)
+	r.GET("/tasks", controller.GetAll)
+	r.POST("/tasks", controller.Insert)
+	r.PUT("/tasks/:id", controller.Update)
+	r.DELETE("/tasks/:id", controller.Delete)
 	r.Run(":8080")
 }
